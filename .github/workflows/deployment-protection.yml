@@ -1,0 +1,127 @@
+name: "Team-based Deployment Protection"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  # ----------------------------------
+  # JOB 1 - Build (everyone can run)
+  # ----------------------------------
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: echo "Building application... triggered by ${{ github.actor }}"
+
+  # ----------------------------------
+  # JOB 2 - Check permissions
+  # Verifies if the actor belongs to Team A
+  # ----------------------------------
+  check-permissions:
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      is-allowed: ${{ steps.check.outputs.is-allowed }}
+    steps:
+      - name: Check if actor is member of Team A
+        id: check
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const org = context.repo.owner;
+            const team_slug = 'team-a'; // replace with your actual team slug
+            const actor = context.actor;
+
+            try {
+              // Check if actor is a member of team-a
+              await github.rest.teams.getMembershipForUserInOrg({
+                org: org,
+                team_slug: team_slug,
+                username: actor,
+              });
+
+              console.log(`✅ User ${actor} is a member of ${team_slug} - deployment allowed`);
+              core.setOutput('is-allowed', 'true');
+
+            } catch (error) {
+              console.log(`❌ User ${actor} is NOT a member of ${team_slug} - deployment denied`);
+              core.setOutput('is-allowed', 'false');
+            }
+
+  # ----------------------------------
+  # JOB 3 - Staging deployment
+  # Requires environment approval + Team A membership
+  # ----------------------------------
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: check-permissions
+    # Only runs if actor is member of Team A
+    if: needs.check-permissions.outputs.is-allowed == 'true'
+    environment: staging  # set Required Reviewers in GitHub UI for this environment
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Staging
+        run: echo "Deploying to staging environment... triggered by ${{ github.actor }}"
+
+      - name: Print environment variable
+        run: echo "Staging URL is ${{ vars.STAGING_URL }}"
+
+      - name: Print environment secret
+        run: |
+          if [ -z "${{ secrets.STAGING_API_KEY }}" ]; then
+            echo "Secret STAGING_API_KEY is EMPTY"
+          else
+            echo "Secret STAGING_API_KEY is SET (value is masked)"
+          fi
+
+  # ----------------------------------
+  # JOB 4 - Production deployment
+  # Requires environment approval + Team A membership
+  # ----------------------------------
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    # Only runs if actor is member of Team A
+    if: needs.check-permissions.outputs.is-allowed == 'true'
+    environment: production  # set Required Reviewers in GitHub UI for this environment
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Production
+        run: echo "Deploying to production environment... triggered by ${{ github.actor }}"
+
+      - name: Print environment variable
+        run: echo "Production URL is ${{ vars.PRODUCTION_URL }}"
+
+      - name: Print environment secret
+        run: |
+          if [ -z "${{ secrets.PRODUCTION_API_KEY }}" ]; then
+            echo "Secret PRODUCTION_API_KEY is EMPTY"
+          else
+            echo "Secret PRODUCTION_API_KEY is SET (value is masked)"
+          fi
+
+  # ----------------------------------
+  # JOB 5 - Notify if deployment was denied
+  # Runs only if actor is NOT member of Team A
+  # ----------------------------------
+  notify-denied:
+    runs-on: ubuntu-latest
+    needs: check-permissions
+    if: needs.check-permissions.outputs.is-allowed == 'false'
+    steps:
+      - name: Notify deployment denied
+        run: |
+          echo "⛔ Deployment was denied for user: ${{ github.actor }}"
+          echo "Only members of Team A are allowed to trigger deployments."
+          exit 1
