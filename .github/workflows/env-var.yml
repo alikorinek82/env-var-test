@@ -1,0 +1,21 @@
+name: Test Environment Variables and Secrets
+on:
+  workflow_dispatch:
+
+jobs:
+  test-with-environment:
+    runs-on: ubuntu-latest
+    environment: test
+    steps:
+      - name: Print ENVIRONMENT variable
+        run: echo "Environment variable value is my name ${{ vars.MY_ENV_VAR }}"
+
+      - name: Print ENVIRONMENT secret
+        run: echo "Environment secret value is namy of my son ${{ secrets.MY_ENV_SECRET }}"
+      - name: Check if secret is set
+        run: |
+          if [ -z "${{ secrets.MY_ENV_SECRET }}" ]; then
+            echo "Secret is EMPTY"
+          else
+            echo "Secret is SET (value is masked)"
+          fi
