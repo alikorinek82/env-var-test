@@ -5,7 +5,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'shared/config.yml'     # spustí se jen při změně tohoto souboru
+      - '.github/shared/config.yml'     # spustí se jen při změně tohoto souboru
 
 jobs:
   sync:
@@ -22,7 +22,7 @@ jobs:
         uses: actions/create-github-app-token@v3
         id:   app-token
         with:
-          app-id:      ${{ vars.APP_ID }}
+          client-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           repositories: aktestak    # token bude platit JEN pro tento repo
 
@@ -40,7 +40,7 @@ jobs:
       # 4. Zkopíruj soubor z alpha do beta
       - name: Zkopíruj config
         run: |
-          cp shared/config.yml aktestak/shared/config.yml
+          cp .github/shared/config.yml aktestak/shared/config.yml
 
       # 5. Vytvoř větev a otevři PR v aktestak
       - name: Otevři Pull Request v aktestak
