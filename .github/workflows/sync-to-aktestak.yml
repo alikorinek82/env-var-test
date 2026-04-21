@@ -49,7 +49,7 @@ jobs:
           token:  ${{ steps.app-token.outputs.token }}
 
           path:   aktestak
-          branch: sync/config-from-alpha
-          title:  "sync: config z repo-alpha (${{ github.sha }})"
+          branch: sync/config-from-env-var-test
+          title:  "sync: config z env-var-test (${{ github.sha }})"
           body:   "Automatický sync shared/config.yml"
-          commit-message: "chore: sync config z repo-alpha"
+          commit-message: "chore: sync config z env-var-test"
