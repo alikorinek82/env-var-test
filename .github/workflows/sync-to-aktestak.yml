@@ -1,6 +1,7 @@
 name: Sync souboru do aktestak
 
 on:
+  workflow_dispatch: 
   push:
     branches: [ main ]
     paths:
