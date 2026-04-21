@@ -1,0 +1,55 @@
+name: Sync souboru do aktestak
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'shared/config.yml'     # spustí se jen při změně tohoto souboru
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo-alpha (aby workflow měl přístup k souboru)
+      - name: Checkout repo-alpha
+        uses: actions/checkout@v4
+
+
+      # 2. Vygeneruj token přes GitHub App pro aktestak
+      - name: Získej App token
+        uses: actions/create-github-app-token@v3
+        id:   app-token
+        with:
+          app-id:      ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          repositories: aktestak    # token bude platit JEN pro tento repo
+
+
+      # 3. Checkout aktestak pomocí App tokenu
+      - name: Checkout aktestak
+        uses: actions/checkout@v4
+        with:
+          repository: alikorinek82/aktestak
+
+          token:      ${{ steps.app-token.outputs.token }}
+
+          path:       aktestak       # checkoutne do složky ./aktestak
+
+      # 4. Zkopíruj soubor z alpha do beta
+      - name: Zkopíruj config
+        run: |
+          cp shared/config.yml aktestak/shared/config.yml
+
+      # 5. Vytvoř větev a otevři PR v aktestak
+      - name: Otevři Pull Request v aktestak
+        uses: peter-evans/create-pull-request@v6
+        with:
+
+          token:  ${{ steps.app-token.outputs.token }}
+
+          path:   aktestak
+          branch: sync/config-from-alpha
+          title:  "sync: config z repo-alpha (${{ github.sha }})"
+          body:   "Automatický sync shared/config.yml"
+          commit-message: "chore: sync config z repo-alpha"
