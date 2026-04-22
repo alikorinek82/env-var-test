@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repo-alpha (aby workflow měl přístup k souboru)
-      - name: Checkout repo-alpha
+      # 1. Checkout repo aktestak (aby workflow měl přístup k souboru)
+      - name: Checkout repo aktestak
         uses: actions/checkout@v4
 
 
